@@ -16,6 +16,10 @@ import java.net.Socket;
 import java.util.Date;
 
 public class Server extends Application {
+    // IO streams
+    DataOutputStream outputToClient = null;
+    DataInputStream inputFromClient = null;
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -24,6 +28,7 @@ public class Server extends Application {
     public void start(Stage primaryStage) throws Exception {
         TextArea messages = new TextArea();
         messages.setPrefHeight(300);
+        messages.setEditable(false);
 
         TextField input = new TextField();
         input.setPrefHeight(50);
@@ -36,7 +41,6 @@ public class Server extends Application {
         primaryStage.show();
 
         new Thread(() -> {
-            //input.setOnAction(e -> {
             try {
                 // create a server socket
                 ServerSocket serverSocket = new ServerSocket(8000);
@@ -49,11 +53,11 @@ public class Server extends Application {
                         messages.appendText("Server connected with client\n"));
 
                 // create data input and output streams
-                DataInputStream inputFromClient = new DataInputStream(socket.getInputStream());
-                DataOutputStream outputToClient = new DataOutputStream(socket.getOutputStream());
+                inputFromClient = new DataInputStream(socket.getInputStream());
+                outputToClient = new DataOutputStream(socket.getOutputStream());
 
                 while (true) {
-
+                    // used to read message from Client
                     String str = inputFromClient.readUTF();
                     Platform.runLater(() ->
                             messages.appendText("Client: " + str + '\n'));
@@ -63,7 +67,31 @@ public class Server extends Application {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            //});
+        }).start();
+
+        // used to write message to client
+        new Thread(() -> {
+            // when enter is pressed
+            input.setOnAction(e -> {
+                try {
+                    // assign the text in the input text box to text
+                    String text = input.getText();
+
+                    // send text to the server
+
+                    System.out.println("text is " + text);
+                    outputToClient.writeUTF(text);
+                    outputToClient.flush();
+
+                    // display to the text area
+                    messages.appendText("Server: " + text + '\n');
+
+                    // turn the text field blank
+                    input.setText("");
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            });
         }).start();
     }
 }
